@@ -39,7 +39,7 @@ git push -u origin main
 
 ## Building
 
-**Prerequisites:** CMake ≥ 3.22, a C++17 compiler, JUCE 7.x.
+**Prerequisites:** CMake ≥ 3.22, a C++17 compiler, JUCE 8.x.
 
 JUCE is pulled automatically via `FetchContent`. First configure takes a few minutes; afterward, incremental builds are fast.
 
@@ -114,7 +114,6 @@ stereo-field-compressor/
 
 ## License
 
-Built on JUCE 7 (pulled via FetchContent). With the JUCE splash screen disabled
-(`JUCE_DISPLAY_SPLASH_SCREEN=0`), the free-tier JUCE licence requires the product to be
-released under the GNU AGPLv3 — see [`LICENSE`](LICENSE). If you instead hold a paid JUCE
-(Indie/Pro) licence, remove `LICENSE` and document the commercial licence here.
+Built on JUCE 8 (pulled via FetchContent) under its free-tier open-source terms, so the
+product is released under the GNU AGPLv3 — see [`LICENSE`](LICENSE). If you instead hold a
+paid JUCE (Indie/Pro) licence, remove `LICENSE` and document the commercial licence here.
