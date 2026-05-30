@@ -15,6 +15,7 @@ public:
 
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;
     void releaseResources() override {}
+    void reset() override;
     bool isBusesLayoutSupported (const BusesLayout&) const override;
     void processBlock (juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
 
@@ -36,7 +37,7 @@ public:
     void setStateInformation (const void* data, int sizeInBytes) override;
 
     juce::AudioProcessorValueTreeState apvts;
-    ConeCompressor& getCompressor() noexcept { return comp_; }
+    ConeCompressor& getCompressor() noexcept { return comp_; } // reserved: GR meter / polar view
 
 private:
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
@@ -45,6 +46,20 @@ private:
     SpatialDetector detector_;
     ConeWindow      window_;
     ConeCompressor  comp_;
+
+    // Cached APVTS atomics — resolved once in the constructor so the audio
+    // thread does plain atomic loads instead of per-block string-keyed lookups.
+    std::atomic<float>* pThreshold_  = nullptr;
+    std::atomic<float>* pRatio_      = nullptr;
+    std::atomic<float>* pAttack_     = nullptr;
+    std::atomic<float>* pRelease_    = nullptr;
+    std::atomic<float>* pKnee_       = nullptr;
+    std::atomic<float>* pMakeup_     = nullptr;
+    std::atomic<float>* pConeCenter_ = nullptr;
+    std::atomic<float>* pConeWidth_  = nullptr;
+    std::atomic<float>* pMix_        = nullptr;
+
+    juce::SmoothedValue<float> mixSm_;   // smoothed dry/wet — avoids zipper noise on automation
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (StereoFieldCompressorProcessor)
 };

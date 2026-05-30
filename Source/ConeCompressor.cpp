@@ -5,19 +5,21 @@ void ConeCompressor::prepare (double sampleRate, int /*blockSize*/)
 {
     sampleRate_ = sampleRate;
     updateCoeffs();
+    makeupSm_.reset (sampleRate, kMakeupRampSec);
     reset();
 }
 
 void ConeCompressor::reset()
 {
-    envDb_   = -120.0f;
+    envDb_    = kMinEnvDb;
     lastGrDb_ = 0.0f;
+    makeupSm_.setCurrentAndTargetValue (makeupDb_);
 }
 
 void ConeCompressor::setThresholdDb (float v) noexcept { thresholdDb_ = v; }
 void ConeCompressor::setRatio       (float v) noexcept { ratio_ = juce::jmax (1.0f, v); }
 void ConeCompressor::setKneeDb      (float v) noexcept { kneeDb_ = juce::jmax (0.0f, v); }
-void ConeCompressor::setMakeupDb    (float v) noexcept { makeupDb_ = v; }
+void ConeCompressor::setMakeupDb    (float v) noexcept { makeupDb_ = v; makeupSm_.setTargetValue (v); }
 
 void ConeCompressor::setAttackMs  (float v) noexcept { attackMs_  = juce::jmax (0.1f, v); updateCoeffs(); }
 void ConeCompressor::setReleaseMs (float v) noexcept { releaseMs_ = juce::jmax (1.0f, v); updateCoeffs(); }
@@ -31,7 +33,7 @@ void ConeCompressor::updateCoeffs() noexcept
 
 float ConeCompressor::linToDb (float x) noexcept
 {
-    return 20.0f * std::log10 (juce::jmax (1.0e-7f, std::abs (x)));
+    return 20.0f * std::log10 (juce::jmax (kLogFloor, std::abs (x)));
 }
 
 float ConeCompressor::dbToLin (float db) noexcept
@@ -50,9 +52,11 @@ float ConeCompressor::computeGainReductionDb (float inDb) const noexcept
     if (overshoot >= halfKnee)
         return -(overshoot - overshoot / ratio_);
 
-    // Soft knee (quadratic interpolation)
+    // Soft knee (quadratic interpolation). (1/ratio - 1) is already negative for
+    // ratio > 1, so this term is a gain *reduction* and is continuous with the
+    // hard-knee branch at overshoot == +halfKnee.
     const float x = overshoot + halfKnee;
-    const float gr = -(1.0f / ratio_ - 1.0f) * (x * x) / (2.0f * kneeDb_);
+    const float gr = (1.0f / ratio_ - 1.0f) * (x * x) / (2.0f * kneeDb_);
     return gr;
 }
 
@@ -67,5 +71,5 @@ float ConeCompressor::processSample (float sc) noexcept
     const float grDb = computeGainReductionDb (envDb_);
     lastGrDb_ = grDb;
 
-    return dbToLin (grDb + makeupDb_);
+    return dbToLin (grDb + makeupSm_.getNextValue());
 }

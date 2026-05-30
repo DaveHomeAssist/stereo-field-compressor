@@ -60,9 +60,9 @@ Default is `arm64`. Add `-DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"` for a univers
 
 - CMake build chain with JUCE FetchContent — builds clean on macOS, Windows, Linux.
 - `SpatialDetector` — per-sample stereo field position estimator, returns angle in `[-π/2, π/2]` (hard-L to hard-R).
-- `ConeWindow` — raised-cosine gain curve centered on an arbitrary angle with adjustable width. Equation: `0.5 * (1 + cos(π * (θ - θ_center) / θ_width))` clamped to `[0, 1]`.
+- `ConeWindow` — raised-cosine gain curve centered on an arbitrary angle with adjustable width. Equation: `0.5 * (1 + cos(π * (θ - θ_center) / (θ_width/2)))` clamped to `[0, 1]` (the cone spans ±θ_width/2 around the centre; the half-width form matches the code).
 - `ConeCompressor` — the actual compression stage, feed-forward topology, per-sample attack/release, ratio + threshold + knee.
-- Parameter tree (`juce::AudioProcessorValueTreeState`) with automatable params: Threshold, Ratio, Attack, Release, Cone Center, Cone Width, Makeup, Mix.
+- Parameter tree (`juce::AudioProcessorValueTreeState`) with automatable params: Threshold, Ratio, Attack, Release, Knee, Cone Center, Cone Width, Makeup, Mix.
 - Preset save/load via JUCE's state API.
 - Plugin identifiers finalised — `PLUGIN_MANUFACTURER_CODE Drob` / `PLUGIN_CODE Sfc1` in `CMakeLists.txt`.
 - Sidechain routing — `processBlock` drives the spatial detector from the external sidechain bus when the host enables one, falling back to internal detection on the main input otherwise.
@@ -73,8 +73,8 @@ These are explicit and require attention before shipping:
 
 1. **Tuning** — attack/release curves are conservative defaults (RC one-pole). Musical tuning (program-dependent release, auto-gain) not done.
 2. **UI** — current editor is generic sliders. No spatial visualization yet. You'll want a polar view showing cone position + input distribution.
-3. **Latency reporting** — detector uses a 32-sample smoothing window but `getLatencySamples()` returns 0. Fix if any lookahead is added.
-4. **Mid/Side bypass fallback** — mono-summed input now reads as centre (detector sees L==R → angle 0); verify this is musically acceptable.
+3. **Latency reporting** — detector uses a one-pole RC smoother (~5 ms, zero-latency), so `getLatencySamples()` is 0 (the JUCE default is never overridden). Revisit if lookahead is added.
+4. **Mono / centre fallback** — mono-summed input reads as centre (|L|==|R| → angle 0); verify this is musically acceptable.
 5. **Oversampling** — not implemented. Add `juce::dsp::Oversampling` before the gain stage to avoid inter-sample peaks.
 6. **Metering** — no GR meter. Add a `LevelMeter` widget and expose reduction from `ConeCompressor::getLastGainReductionDb()`.
 7. **Tests** — no unit tests. At minimum, add unit tests for `ConeWindow::gainAt(angle)` boundary cases (center=0, width=π/2 full scale, etc.).
@@ -109,3 +109,12 @@ stereo-field-compressor/
 │   ├── ConeCompressor.h
 │   └── ConeCompressor.cpp
 ```
+
+---
+
+## License
+
+Built on JUCE 7 (pulled via FetchContent). With the JUCE splash screen disabled
+(`JUCE_DISPLAY_SPLASH_SCREEN=0`), the free-tier JUCE licence requires the product to be
+released under the GNU AGPLv3 — see [`LICENSE`](LICENSE). If you instead hold a paid JUCE
+(Indie/Pro) licence, remove `LICENSE` and document the commercial licence here.

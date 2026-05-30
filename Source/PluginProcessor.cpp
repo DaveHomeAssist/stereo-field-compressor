@@ -51,6 +51,15 @@ StereoFieldCompressorProcessor::StereoFieldCompressorProcessor()
                           .withOutput ("Output",    juce::AudioChannelSet::stereo(), true)),
       apvts (*this, nullptr, "PARAMS", createParameterLayout())
 {
+    pThreshold_  = apvts.getRawParameterValue (IDs::threshold);
+    pRatio_      = apvts.getRawParameterValue (IDs::ratio);
+    pAttack_     = apvts.getRawParameterValue (IDs::attack);
+    pRelease_    = apvts.getRawParameterValue (IDs::release);
+    pKnee_       = apvts.getRawParameterValue (IDs::knee);
+    pMakeup_     = apvts.getRawParameterValue (IDs::makeup);
+    pConeCenter_ = apvts.getRawParameterValue (IDs::coneCenter);
+    pConeWidth_  = apvts.getRawParameterValue (IDs::coneWidth);
+    pMix_        = apvts.getRawParameterValue (IDs::mix);
 }
 
 bool StereoFieldCompressorProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
@@ -72,20 +81,32 @@ void StereoFieldCompressorProcessor::prepareToPlay (double sampleRate, int block
 {
     detector_.prepare (sampleRate, blockSize);
     comp_.prepare     (sampleRate, blockSize);
+
+    mixSm_.reset (sampleRate, 0.02); // 20 ms dry/wet smoothing
+    mixSm_.setCurrentAndTargetValue (pMix_->load());
+
     syncParams();
+}
+
+void StereoFieldCompressorProcessor::reset()
+{
+    detector_.reset();
+    comp_.reset();
+    mixSm_.setCurrentAndTargetValue (pMix_->load());
 }
 
 void StereoFieldCompressorProcessor::syncParams() noexcept
 {
-    comp_.setThresholdDb (apvts.getRawParameterValue (IDs::threshold)->load());
-    comp_.setRatio       (apvts.getRawParameterValue (IDs::ratio)->load());
-    comp_.setAttackMs    (apvts.getRawParameterValue (IDs::attack)->load());
-    comp_.setReleaseMs   (apvts.getRawParameterValue (IDs::release)->load());
-    comp_.setKneeDb      (apvts.getRawParameterValue (IDs::knee)->load());
-    comp_.setMakeupDb    (apvts.getRawParameterValue (IDs::makeup)->load());
+    comp_.setThresholdDb (pThreshold_->load());
+    comp_.setRatio       (pRatio_->load());
+    comp_.setAttackMs    (pAttack_->load());
+    comp_.setReleaseMs   (pRelease_->load());
+    comp_.setKneeDb      (pKnee_->load());
+    comp_.setMakeupDb    (pMakeup_->load());
 
-    window_.setShape (apvts.getRawParameterValue (IDs::coneCenter)->load(),
-                      apvts.getRawParameterValue (IDs::coneWidth)->load());
+    window_.setShape (pConeCenter_->load(), pConeWidth_->load());
+
+    mixSm_.setTargetValue (pMix_->load());
 }
 
 void StereoFieldCompressorProcessor::processBlock (juce::AudioBuffer<float>& buffer,
@@ -115,8 +136,6 @@ void StereoFieldCompressorProcessor::processBlock (juce::AudioBuffer<float>& buf
     auto* l = mainOut.getWritePointer (0);
     auto* r = mainOut.getWritePointer (1);
 
-    const float mix = apvts.getRawParameterValue (IDs::mix)->load();
-
     for (int i = 0; i < numSamples; ++i)
     {
         const float angle  = detector_.process (scL[i], scR[i]);
@@ -126,6 +145,7 @@ void StereoFieldCompressorProcessor::processBlock (juce::AudioBuffer<float>& buf
         const float scMag  = 0.5f * (std::abs (scL[i]) + std::abs (scR[i]));
         const float gain   = comp_.processSample (scMag * spat);
 
+        const float mix  = mixSm_.getNextValue();   // smoothed dry/wet
         const float dryL = l[i];
         const float dryR = r[i];
         const float wetL = dryL * gain;

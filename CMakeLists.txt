@@ -33,8 +33,6 @@ juce_add_plugin(StereoFieldCompressor
     VST3_CATEGORIES           Fx Dynamics
 )
 
-juce_generate_juce_header(StereoFieldCompressor)
-
 target_sources(StereoFieldCompressor PRIVATE
     Source/PluginProcessor.cpp
     Source/PluginEditor.cpp
@@ -52,7 +50,7 @@ target_compile_definitions(StereoFieldCompressor PUBLIC
 
 target_link_libraries(StereoFieldCompressor PRIVATE
     juce::juce_audio_utils
-    juce::juce_dsp
+    juce::juce_dsp          # retained for planned juce::dsp::Oversampling (see README next-steps)
     PUBLIC
     juce::juce_recommended_config_flags
     juce::juce_recommended_lto_flags

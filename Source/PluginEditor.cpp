@@ -46,7 +46,8 @@ void StereoFieldCompressorEditor::resized()
     area.removeFromTop (28); // header
 
     const int rowHeight = 130;
-    const int cellWidth = area.getWidth() / 5;
+    const int columns   = 5;                     // top row defines the grid; row 2 leaves one empty cell
+    const int cellWidth = area.getWidth() / columns;
 
     auto row1 = area.removeFromTop (rowHeight);
     LabeledSlider* top[] = { &threshold_, &ratio_, &attack_, &release_, &knee_ };
@@ -58,12 +59,11 @@ void StereoFieldCompressorEditor::resized()
     }
 
     auto row2 = area.removeFromTop (rowHeight);
-    LabeledSlider* bot[] = { &makeup_, &coneCenter_, &coneWidth_, &mix_, &mix_ };
-    // row2 has 4 used cells; skip last
-    for (int i = 0; i < 4; ++i)
+    LabeledSlider* bot[] = { &makeup_, &coneCenter_, &coneWidth_, &mix_ };
+    for (auto* s : bot)
     {
         auto cell = row2.removeFromLeft (cellWidth);
-        bot[i]->label.setBounds  (cell.removeFromTop (20));
-        bot[i]->slider.setBounds (cell);
+        s->label.setBounds  (cell.removeFromTop (20));
+        s->slider.setBounds (cell);
     }
 }
