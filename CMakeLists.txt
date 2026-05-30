@@ -20,8 +20,8 @@ FetchContent_MakeAvailable(JUCE)
 juce_add_plugin(StereoFieldCompressor
     COMPANY_NAME              "Dave Robertson"
     BUNDLE_ID                 com.daverobertson.stereofieldcompressor
-    PLUGIN_MANUFACTURER_CODE  Drob         # CHANGE before release
-    PLUGIN_CODE               Sfc1         # CHANGE before release
+    PLUGIN_MANUFACTURER_CODE  Drob         # Dave Robertson (vendor) — final
+    PLUGIN_CODE               Sfc1         # Stereo Field Compressor v1 — final
     FORMATS                   VST3 Standalone
     PRODUCT_NAME              "Stereo Field Compressor"
     IS_SYNTH                  FALSE

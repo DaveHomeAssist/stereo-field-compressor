@@ -21,3 +21,9 @@ compile_commands.json
 *.dylib
 *.dll
 *.exe
+
+# Packaged / distributable build artifacts (ship via GitHub Releases, not source)
+*.zip
+*.vst3/
+*.app/
+*.component/

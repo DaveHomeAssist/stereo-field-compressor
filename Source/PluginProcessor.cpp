@@ -95,19 +95,25 @@ void StereoFieldCompressorProcessor::processBlock (juce::AudioBuffer<float>& buf
     syncParams();
 
     const int numSamples = buffer.getNumSamples();
-    auto mainIn = getBusBuffer (buffer, true, 0);
+    auto mainIn  = getBusBuffer (buffer, true, 0);
     auto mainOut = getBusBuffer (buffer, false, 0);
 
-    // TODO(sidechain): when a sidechain bus is connected, feed the detector
-    // from that bus instead of the main input. See getBusBuffer(buffer, true, 1).
-    auto scBus = getBusBuffer (buffer, true, 1);
-    const bool scActive = scBus.getNumChannels() >= 2;
+    // Sidechain routing: drive the spatial detector from the external sidechain
+    // bus when the host has one enabled; otherwise fall back to internal
+    // detection on the main input. isBusesLayoutSupported forces both the main
+    // input and any enabled sidechain to stereo, so detectBuf always has two
+    // channels here — the detectStereo check is belt-and-suspenders in case that
+    // layout constraint is ever relaxed to admit a mono source (then L==R → centre).
+    auto* scBus = getBus (true, 1);
+    const bool useSidechain = scBus != nullptr && scBus->isEnabled();
+    auto detectBuf = useSidechain ? getBusBuffer (buffer, true, 1) : mainIn;
+
+    const bool detectStereo = detectBuf.getNumChannels() >= 2;
+    const float* scL = detectBuf.getReadPointer (0);
+    const float* scR = detectStereo ? detectBuf.getReadPointer (1) : scL;
 
     auto* l = mainOut.getWritePointer (0);
     auto* r = mainOut.getWritePointer (1);
-
-    const float* scL = scActive ? scBus.getReadPointer (0) : mainIn.getReadPointer (0);
-    const float* scR = scActive ? scBus.getReadPointer (1) : mainIn.getReadPointer (1);
 
     const float mix = apvts.getRawParameterValue (IDs::mix)->load();
 

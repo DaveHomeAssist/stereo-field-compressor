@@ -64,30 +64,29 @@ Default is `arm64`. Add `-DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"` for a univers
 - `ConeCompressor` — the actual compression stage, feed-forward topology, per-sample attack/release, ratio + threshold + knee.
 - Parameter tree (`juce::AudioProcessorValueTreeState`) with automatable params: Threshold, Ratio, Attack, Release, Cone Center, Cone Width, Makeup, Mix.
 - Preset save/load via JUCE's state API.
-- Plugin identifiers set for Dave — change the PLUGIN_MANUFACTURER_CODE + PLUGIN_CODE in `CMakeLists.txt` before any release.
+- Plugin identifiers finalised — `PLUGIN_MANUFACTURER_CODE Drob` / `PLUGIN_CODE Sfc1` in `CMakeLists.txt`.
+- Sidechain routing — `processBlock` drives the spatial detector from the external sidechain bus when the host enables one, falling back to internal detection on the main input otherwise.
 
 ## What's NOT production-ready (gaps)
 
 These are explicit and require attention before shipping:
 
-1. **Sidechain routing** — scaffold accepts a sidechain bus, but the detector currently runs on the main input. Switch to reading the sidechain when available. See `PluginProcessor.cpp:processBlock` — marked `TODO(sidechain)`.
-2. **Tuning** — attack/release curves are conservative defaults (RC one-pole). Musical tuning (program-dependent release, auto-gain) not done.
-3. **UI** — current editor is generic sliders. No spatial visualization yet. You'll want a polar view showing cone position + input distribution.
-4. **Latency reporting** — detector uses a 32-sample smoothing window but `getLatencySamples()` returns 0. Fix if any lookahead is added.
-5. **Mid/Side bypass fallback** — no graceful behavior for mono-summed input. Currently detector returns 0 (center) for mono; verify this is musically acceptable.
-6. **Oversampling** — not implemented. Add `juce::dsp::Oversampling` before the gain stage to avoid inter-sample peaks.
-7. **Metering** — no GR meter. Add a `LevelMeter` widget and expose reduction from `ConeCompressor::getLastGainReductionDb()`.
-8. **Tests** — no unit tests. At minimum, add unit tests for `ConeWindow::gainAt(angle)` boundary cases (center=0, width=π/2 full scale, etc.).
-9. **AU / AAX** — CMake targets VST3 only. Add AU for macOS if needed; AAX requires separate SDK + NDA.
-10. **CI** — no GitHub Actions. A matrix build on macos-latest / ubuntu-latest / windows-latest is straightforward.
+1. **Tuning** — attack/release curves are conservative defaults (RC one-pole). Musical tuning (program-dependent release, auto-gain) not done.
+2. **UI** — current editor is generic sliders. No spatial visualization yet. You'll want a polar view showing cone position + input distribution.
+3. **Latency reporting** — detector uses a 32-sample smoothing window but `getLatencySamples()` returns 0. Fix if any lookahead is added.
+4. **Mid/Side bypass fallback** — mono-summed input now reads as centre (detector sees L==R → angle 0); verify this is musically acceptable.
+5. **Oversampling** — not implemented. Add `juce::dsp::Oversampling` before the gain stage to avoid inter-sample peaks.
+6. **Metering** — no GR meter. Add a `LevelMeter` widget and expose reduction from `ConeCompressor::getLastGainReductionDb()`.
+7. **Tests** — no unit tests. At minimum, add unit tests for `ConeWindow::gainAt(angle)` boundary cases (center=0, width=π/2 full scale, etc.).
+8. **AU / AAX** — CMake targets VST3 only. Add AU for macOS if needed; AAX requires separate SDK + NDA.
+9. **CI** — no GitHub Actions. A matrix build on macos-latest / ubuntu-latest / windows-latest is straightforward.
 
 ## Next steps (prioritized)
 
-1. Wire sidechain routing (~30 min).
-2. Add polar spatial-view UI component (~3 hr).
-3. Tune attack/release defaults with Connor on real material (~1 session).
-4. Oversampling + GR metering (~2 hr combined).
-5. CI workflow.
+1. Add polar spatial-view UI component (~3 hr).
+2. Tune attack/release defaults with Connor on real material (~1 session).
+3. Oversampling + GR metering (~2 hr combined).
+4. CI workflow.
 
 ---
 
