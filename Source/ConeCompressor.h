@@ -27,9 +27,13 @@ public:
     float processSample (float sidechainWeighted) noexcept;
 
     /** Last gain reduction, dB (negative = compression). */
-    float getLastGainReductionDb() const noexcept { return lastGrDb_; }
+    float getLastGainReductionDb() const noexcept { return lastGrDb_; } // reserved: GR meter
 
 private:
+    static constexpr float  kMinEnvDb      = -120.0f;   // envelope floor, well below any threshold
+    static constexpr float  kLogFloor      = 1.0e-7f;   // linToDb input floor (~ -140 dBFS)
+    static constexpr double kMakeupRampSec = 0.02;      // makeup smoothing time (s)
+
     double sampleRate_ = 44100.0;
 
     float thresholdDb_ = -18.0f;
@@ -42,7 +46,9 @@ private:
     float attackCoeff_  = 0.0f;
     float releaseCoeff_ = 0.0f;
 
-    float envDb_  = -120.0f;
+    juce::SmoothedValue<float> makeupSm_;   // smoothed makeup (dB) — avoids zipper noise on automation
+
+    float envDb_  = kMinEnvDb;
     float lastGrDb_ = 0.0f;
 
     static float linToDb (float x) noexcept;

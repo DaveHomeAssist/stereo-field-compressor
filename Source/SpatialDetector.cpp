@@ -10,7 +10,8 @@ void SpatialDetector::prepare (double sampleRate, int /*blockSize*/)
 
 void SpatialDetector::reset()
 {
-    state_ = 0.0f;
+    magL_ = 0.0f;
+    magR_ = 0.0f;
 }
 
 void SpatialDetector::setSmoothingTimeMs (float ms) noexcept
@@ -28,19 +29,19 @@ void SpatialDetector::updateAlpha() noexcept
 
 float SpatialDetector::process (float l, float r) noexcept
 {
-    // Mono-safe: if sum is ~0, treat as center.
-    const float sum  = r + l;
-    const float diff = r - l;
-    float angle = 0.0f;
+    // Smooth channel magnitudes (energy balance) rather than the raw bipolar
+    // samples: a steadily-panned source flips sign every half-cycle, so
+    // smoothing the signed difference would average the angle to centre.
+    magL_ += alpha_ * (std::abs (l) - magL_);
+    magR_ += alpha_ * (std::abs (r) - magR_);
 
-    if (std::abs (sum) > 1.0e-7f || std::abs (diff) > 1.0e-7f)
-        angle = std::atan2 (diff, std::abs (sum));
+    // Silence → centre.
+    if (magL_ + magR_ <= kSilenceFloor)
+        return 0.0f;
 
-    // Clamp to [-π/2, +π/2]
-    const float halfPi = juce::MathConstants<float>::halfPi;
-    angle = juce::jlimit (-halfPi, halfPi, angle);
-
-    // One-pole smooth
-    state_ += alpha_ * (angle - state_);
-    return state_;
+    // Balance angle atan2(|R|,|L|) ∈ [0, π/2]; remap to [-π/2, +π/2], 0 = centre.
+    const float quarterPi = juce::MathConstants<float>::pi * 0.25f;
+    const float halfPi     = juce::MathConstants<float>::halfPi;
+    const float angle = 2.0f * (std::atan2 (magR_, magL_) - quarterPi);
+    return juce::jlimit (-halfPi, halfPi, angle);
 }
