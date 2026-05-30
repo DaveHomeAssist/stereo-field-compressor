@@ -11,7 +11,7 @@ include(FetchContent)
 FetchContent_Declare(
     JUCE
     GIT_REPOSITORY https://github.com/juce-framework/JUCE.git
-    GIT_TAG        7.0.12
+    GIT_TAG        8.0.13
     GIT_SHALLOW    TRUE
 )
 FetchContent_MakeAvailable(JUCE)
@@ -45,7 +45,6 @@ target_compile_definitions(StereoFieldCompressor PUBLIC
     JUCE_WEB_BROWSER=0
     JUCE_USE_CURL=0
     JUCE_VST3_CAN_REPLACE_VST2=0
-    JUCE_DISPLAY_SPLASH_SCREEN=0
 )
 
 target_link_libraries(StereoFieldCompressor PRIVATE
