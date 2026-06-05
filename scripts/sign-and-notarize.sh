@@ -58,9 +58,28 @@ command -v xcrun >/dev/null || die "xcrun not found (install Xcode Command Line 
 security find-identity -v -p codesigning | grep -q "$TEAM_ID" \
   || die "No Developer ID codesigning identity for team $TEAM_ID in keychain."
 
+# Stage clean copies outside the build tree before signing. Some local build
+# paths can accumulate Finder/resource-fork metadata that codesign rejects.
+SIGN_ROOT="$(mktemp -d)"
+trap 'rm -rf "$SIGN_ROOT"' EXIT
+mkdir -p "$SIGN_ROOT/VST3" "$SIGN_ROOT/Standalone"
+ditto --norsrc "$VST3" "$SIGN_ROOT/VST3/$PRODUCT.vst3"
+ditto --norsrc "$APP"  "$SIGN_ROOT/Standalone/$PRODUCT.app"
+VST3="$SIGN_ROOT/VST3/$PRODUCT.vst3"
+APP="$SIGN_ROOT/Standalone/$PRODUCT.app"
+
 # ─── Sign (inside-out; never --deep) ────────────────────────────────────────
+sanitize_executable() {               # $1 = executable path
+  local exe="$1" tmp
+  tmp="$(mktemp "$(dirname "$exe")/.codesign-clean.XXXXXX")"
+  cp -p -X "$exe" "$tmp"
+  mv "$tmp" "$exe"
+  chmod +x "$exe"
+}
+
 sign_bundle() {                       # $1 = bundle, $2 = optional entitlements file
   local bundle="$1" ents="${2:-}"
+  sanitize_executable "$bundle/Contents/MacOS/$PRODUCT"
   codesign --force --timestamp --options runtime -s "$SIGN_ID" "$bundle/Contents/MacOS/$PRODUCT"
   if [[ -n "$ents" ]]; then
     codesign --force --timestamp --options runtime --entitlements "$ents" -s "$SIGN_ID" "$bundle"

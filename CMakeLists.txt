@@ -29,6 +29,9 @@ juce_add_plugin(StereoFieldCompressor
     NEEDS_MIDI_OUTPUT         FALSE
     IS_MIDI_EFFECT            FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
+    HARDENED_RUNTIME_ENABLED  TRUE
+    MICROPHONE_PERMISSION_ENABLED TRUE
+    MICROPHONE_PERMISSION_TEXT "Stereo Field Compressor uses the microphone to process audio input."
     COPY_PLUGIN_AFTER_BUILD   TRUE
     VST3_CATEGORIES           Fx Dynamics
 )
