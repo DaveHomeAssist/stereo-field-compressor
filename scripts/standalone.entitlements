@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!-- Standalone captures audio input → needs this under Hardened Runtime.
+       Pair with Info.plist NSMicrophoneUsageDescription (set in CMake via
+       MICROPHONE_PERMISSION_ENABLED / MICROPHONE_PERMISSION_TEXT). -->
+  <key>com.apple.security.device.audio-input</key>
+  <true/>
+</dict>
+</plist>

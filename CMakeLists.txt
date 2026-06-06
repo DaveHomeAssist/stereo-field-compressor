@@ -1,10 +1,12 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(StereoFieldCompressor VERSION 0.1.0 LANGUAGES C CXX)
+project(StereoFieldCompressor VERSION 0.2.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
+option(SFC_ENABLE_LTO "Enable JUCE recommended LTO flags" OFF)
 
 # ---- JUCE via FetchContent ----
 include(FetchContent)
@@ -29,6 +31,9 @@ juce_add_plugin(StereoFieldCompressor
     NEEDS_MIDI_OUTPUT         FALSE
     IS_MIDI_EFFECT            FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
+    HARDENED_RUNTIME_ENABLED  TRUE
+    MICROPHONE_PERMISSION_ENABLED TRUE
+    MICROPHONE_PERMISSION_TEXT "Stereo Field Compressor uses the microphone to process audio input."
     COPY_PLUGIN_AFTER_BUILD   TRUE
     VST3_CATEGORIES           Fx Dynamics
 )
@@ -52,6 +57,9 @@ target_link_libraries(StereoFieldCompressor PRIVATE
     juce::juce_dsp          # retained for planned juce::dsp::Oversampling (see README next-steps)
     PUBLIC
     juce::juce_recommended_config_flags
-    juce::juce_recommended_lto_flags
     juce::juce_recommended_warning_flags
 )
+
+if(SFC_ENABLE_LTO)
+    target_link_libraries(StereoFieldCompressor PUBLIC juce::juce_recommended_lto_flags)
+endif()
