@@ -1,5 +1,4 @@
 #include "PluginProcessor.h"
-#include "PluginEditor.h"
 
 namespace IDs
 {
@@ -93,6 +92,9 @@ void StereoFieldCompressorProcessor::reset()
     detector_.reset();
     comp_.reset();
     mixSm_.setCurrentAndTargetValue (pMix_->load());
+    meterAngleRad_.store (0.0f, std::memory_order_relaxed);
+    meterConeWeight_.store (0.0f, std::memory_order_relaxed);
+    meterGainReductionDb_.store (0.0f, std::memory_order_relaxed);
 }
 
 void StereoFieldCompressorProcessor::syncParams() noexcept
@@ -127,6 +129,7 @@ void StereoFieldCompressorProcessor::processBlock (juce::AudioBuffer<float>& buf
     // layout constraint is ever relaxed to admit a mono source (then L==R → centre).
     auto* scBus = getBus (true, 1);
     const bool useSidechain = scBus != nullptr && scBus->isEnabled();
+    meterExternalSidechain_.store (useSidechain, std::memory_order_relaxed);
     auto detectBuf = useSidechain ? getBusBuffer (buffer, true, 1) : mainIn;
 
     const bool detectStereo = detectBuf.getNumChannels() >= 2;
@@ -136,10 +139,15 @@ void StereoFieldCompressorProcessor::processBlock (juce::AudioBuffer<float>& buf
     auto* l = mainOut.getWritePointer (0);
     auto* r = mainOut.getWritePointer (1);
 
+    float lastAngle = 0.0f;
+    float lastSpat = 0.0f;
+
     for (int i = 0; i < numSamples; ++i)
     {
         const float angle  = detector_.process (scL[i], scR[i]);
         const float spat   = window_.gainAt (angle);
+        lastAngle = angle;
+        lastSpat  = spat;
 
         // Detector magnitude weighted by cone — outside the cone = 0 → no compression.
         const float scMag  = 0.5f * (std::abs (scL[i]) + std::abs (scR[i]));
@@ -154,11 +162,21 @@ void StereoFieldCompressorProcessor::processBlock (juce::AudioBuffer<float>& buf
         l[i] = dryL + mix * (wetL - dryL);
         r[i] = dryR + mix * (wetR - dryR);
     }
+
+    meterAngleRad_.store (lastAngle, std::memory_order_relaxed);
+    meterConeWeight_.store (lastSpat, std::memory_order_relaxed);
+    meterGainReductionDb_.store (comp_.getLastGainReductionDb(), std::memory_order_relaxed);
 }
 
-juce::AudioProcessorEditor* StereoFieldCompressorProcessor::createEditor()
+StereoFieldCompressorProcessor::MeterSnapshot
+StereoFieldCompressorProcessor::getMeterSnapshot() const noexcept
 {
-    return new StereoFieldCompressorEditor (*this);
+    return {
+        meterAngleRad_.load (std::memory_order_relaxed),
+        meterConeWeight_.load (std::memory_order_relaxed),
+        meterGainReductionDb_.load (std::memory_order_relaxed),
+        meterExternalSidechain_.load (std::memory_order_relaxed)
+    };
 }
 
 void StereoFieldCompressorProcessor::getStateInformation (juce::MemoryBlock& dest)

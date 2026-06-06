@@ -36,6 +36,16 @@ public:
     void getStateInformation (juce::MemoryBlock&) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
 
+    struct MeterSnapshot
+    {
+        float detectedAngleRad = 0.0f;
+        float coneWeight       = 0.0f;
+        float gainReductionDb  = 0.0f;
+        bool  externalSidechain = false;
+    };
+
+    MeterSnapshot getMeterSnapshot() const noexcept;
+
     juce::AudioProcessorValueTreeState apvts;
     ConeCompressor& getCompressor() noexcept { return comp_; } // reserved: GR meter / polar view
 
@@ -60,6 +70,14 @@ private:
     std::atomic<float>* pMix_        = nullptr;
 
     juce::SmoothedValue<float> mixSm_;   // smoothed dry/wet — avoids zipper noise on automation
+
+    // Audio thread publishes one cheap UI snapshot per block; the editor reads
+    // it on its timer. Relaxed ordering is enough because each value is
+    // independent and the display tolerates a single-frame mismatch.
+    std::atomic<float> meterAngleRad_ { 0.0f };
+    std::atomic<float> meterConeWeight_ { 0.0f };
+    std::atomic<float> meterGainReductionDb_ { 0.0f };
+    std::atomic<bool>  meterExternalSidechain_ { false };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (StereoFieldCompressorProcessor)
 };

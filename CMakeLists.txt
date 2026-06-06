@@ -1,10 +1,12 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(StereoFieldCompressor VERSION 0.1.0 LANGUAGES C CXX)
+project(StereoFieldCompressor VERSION 0.2.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
+option(SFC_ENABLE_LTO "Enable JUCE recommended LTO flags" OFF)
 
 # ---- JUCE via FetchContent ----
 include(FetchContent)
@@ -55,6 +57,9 @@ target_link_libraries(StereoFieldCompressor PRIVATE
     juce::juce_dsp          # retained for planned juce::dsp::Oversampling (see README next-steps)
     PUBLIC
     juce::juce_recommended_config_flags
-    juce::juce_recommended_lto_flags
     juce::juce_recommended_warning_flags
 )
+
+if(SFC_ENABLE_LTO)
+    target_link_libraries(StereoFieldCompressor PUBLIC juce::juce_recommended_lto_flags)
+endif()
